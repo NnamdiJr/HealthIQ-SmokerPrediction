@@ -23,7 +23,9 @@ keywords_vector = data[2] #size is 587002
 users_vector = data[3] #size is 2985
 labels_vector = data[4]
 
+print len(labels_vector)
 
+"""
 #Reads hand-picked keywords from text file
 lst = []
 lst_file = open("C:\Users\Nnamdi\Desktop\HealthIQ\Data Generated Keyword Processing\Smoking\smoking_top3000_keywords_unprocessed_123Top200.txt", "r")
@@ -52,6 +54,6 @@ accuracy = clf.score(X_test, y_test)
 
 print accuracy
 print roc_auc_score(y_test, model[:,1])
-
+"""
 
 print("--- %s seconds ---" % (time.time() - start_time))

@@ -12,8 +12,8 @@ from sklearn import cross_validation
 regex_array = numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_Matrix.txt')
 regex_labels = numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_Labels.txt')
 
-
 X = regex_array
+
 y = regex_labels
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.2)
 
@@ -26,6 +26,5 @@ accuracy = clf.score(X_test, y_test)
 
 print accuracy
 print roc_auc_score(y_test, model[:,1])
-
 
 print("--- %s seconds ---" % (time.time() - start_time))
