@@ -15,7 +15,7 @@ regex_labels = numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_Labels.txt')
 
 X = regex_array
 y = regex_labels
-X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.1, random_state=5)
+X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.2)
 
 
 clf = LogisticRegression().fit(X_train, y_train)
