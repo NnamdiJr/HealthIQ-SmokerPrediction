@@ -5,16 +5,22 @@ start_time = time.time()
 from scipy import sparse
 from scipy.sparse import vstack, hstack, csr_matrix
 import numpy
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+from sklearn import cross_validation
+from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
-f = open('C:\Users\Nnamdi\Desktop\HealthIQ\Smoker Analysis\smoking_analytic_data_1.pkl', 'rb')
+f = open('C:\Users\Nnamdi\Desktop\HealthIQ\Smoker Analysis\smoking_1_analytic_data_mapreduce.pkl', 'rb')
 data = numpy.load(f)
 data = numpy.array(data)
 f.close()
 
 #Loading both matrices
-posts_matrix = data[1]
+posts_matrix = data[1] #11616 rows x 605107 columns
 regex_matrix = sparse.csr_matrix(numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_Matrix.txt'))
+labels_vector = data[4]
+users_vector = data[3]
 
 #Loading both sets of userIDs
 riskFactor_userIDs = data[3] #Vector containing risk factor matrix userIDs
@@ -22,7 +28,7 @@ regex_userIDs = numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_UserIDs.txt') #Vect
 
 
 def appendMatrix(matrix01, matrix02):
-    """Column-wise appends matrix02 to matrix01, where user indices are unaligned. Returns new matrix01."""
+    """Column-wise appends matrix02 columns to matrix01, where user indices are unaligned. Returns new matrix01."""
     hold_matrix = csr_matrix((1, csr_matrix.get_shape(matrix02)[1])) #Empty matrix with 1 row
 
     for user in riskFactor_userIDs:
@@ -33,10 +39,20 @@ def appendMatrix(matrix01, matrix02):
 
     hold_matrix = csr_matrix(hold_matrix)[1:,:] #convert to csr matrix and remove first row
     matrix01 = csr_matrix(hstack([matrix01, hold_matrix]))
-    print csr_matrix.get_shape(matrix01)
+    return matrix01
 
 
-print csr_matrix.get_shape(posts_matrix)
-appendMatrix(posts_matrix, regex_matrix)
+X = appendMatrix(posts_matrix, regex_matrix)
+y = labels_vector
+X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.1, random_state=0)
+
+#clf = LogisticRegression().fit(X_train, y_train)
+clf = MultinomialNB().fit(X_train, y_train)
+
+model = clf.predict_proba(X_test)
+accuracy = clf.score(X_test, y_test)
+
+print accuracy
+print roc_auc_score(y_test, model[:,1])
 
 print("--- %s seconds ---" % (time.time() - start_time))
