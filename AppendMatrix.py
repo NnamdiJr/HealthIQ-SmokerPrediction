@@ -20,7 +20,6 @@ f.close()
 posts_matrix = data[1] #11616 rows x 605107 columns
 regex_matrix = sparse.csr_matrix(numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_Matrix.txt'))
 labels_vector = data[4]
-users_vector = data[3]
 
 #Loading both sets of userIDs
 riskFactor_userIDs = data[3] #Vector containing risk factor matrix userIDs
