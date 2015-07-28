@@ -25,9 +25,11 @@ labels_vector = data[4]
 riskFactor_userIDs = data[3] #Vector containing risk factor matrix userIDs
 regex_userIDs = numpy.loadtxt('C:\Users\Nnamdi\Desktop\RegEx_UserIDs.txt') #Vector containing regex matrix userIDs
 
+print type(riskFactor_userIDs)
 
+"""
 def appendMatrix(matrix01, matrix02):
-    """Column-wise appends matrix02 columns to matrix01, where user indices are unaligned. Returns new matrix01."""
+    #Column-wise appends matrix02 columns to matrix01, where user indices are unaligned. Returns new matrix01.
     hold_matrix = csr_matrix((1, csr_matrix.get_shape(matrix02)[1])) #Empty matrix with 1 row
 
     for user in riskFactor_userIDs:
@@ -53,5 +55,5 @@ accuracy = clf.score(X_test, y_test)
 
 print accuracy
 print roc_auc_score(y_test, model[:,1])
-
+"""
 print("--- %s seconds ---" % (time.time() - start_time))
