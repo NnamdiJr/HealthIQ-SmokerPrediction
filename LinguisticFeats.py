@@ -5,7 +5,6 @@ start_time = time.time()
 import codecs
 import os
 import string
-import subprocess
 import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import sent_tokenize, word_tokenize
@@ -26,100 +25,87 @@ keywords_vector = data[2]
 #Empty matrix for load columns
 loader_matrix = numpy.empty([1, 7])
 
-def word_count(fname):
-    count = subprocess.check_output(('wc -w %s' % fname), shell=True)
-    count = int(count.strip(' temp.txt\n'))
+
+def word_count(tokens):
+    count = len(tokens)
     return count
 
-def sent_per_status(fname):
+
+def sent_per_status(file_text):
     sent_count = []
-    with codecs.open(fname, encoding='utf-8') as temp:
-        for line in temp:
-            sent_count.append(len(sent_tokenize(line)))
+    for line in file_text:
+        sent_count.append(len(sent_tokenize(line)))
     avg = sum(sent_count)/float(len(sent_count))
-    temp.close()
     return avg
 
-def words_per_sent(fname):
-    word_count = []
-    with codecs.open(fname, encoding='utf-8') as temp:
-        for line in temp:
-            for sent in sent_tokenize(line):
-                word_count.append(len(word_tokenize(sent)))
-    avg = sum(word_count)/float(len(word_count))
-    temp.close()
+
+def words_per_sent(sents):
+    word_counts = []
+    for sent in sents:
+        word_counts.append(len(word_tokenize(sent)))
+    avg = sum(word_counts)/float(len(word_counts))
     return avg
 
-def punct_count(fname):
+
+def punct_count(tokens):
     count = 0
-    temp = codecs.open(fname, encoding='utf-8')
-    text = temp.read()
-    text = word_tokenize(text)
-    for token in text:
+    for token in tokens:
         if token in string.punctuation:
             count += 1
         continue
-    temp.close()
     return count
 
-def lexical_diversity(fname):
-    temp = codecs.open(fname, encoding='utf-8')
-    text = temp.read()
-    text = word_tokenize(text.lower())
-    diversity = len(text) / float(len(set(text)))
-    temp.close()
+
+def lexical_diversity(tokens):
+    diversity = len(tokens) / float(len(set(tokens)))
     return diversity
 
-def emoticons(fname):
+
+def emoticons(file_text):
     count = 0
-    with open('emoticons.txt','r') as f:
+    with open('emoticons.txt', 'r') as f:
         emtcns = [l.strip() for l in f]
-    with codecs.open(fname, encoding='utf-8') as temp:
-        for line in temp:
-            for icon in emtcns:
-                if icon in line:
-                    count += 1
-                continue
-    temp.close()
+    for line in file_text:
+        for icon in emtcns:
+            if icon in line:
+                count += 1
+            continue
     f.close()
     return count
 
-def acronyms(fname):
+
+def acronyms(tokens):
     count = 0
-    temp = codecs.open(fname, encoding='utf-8')
-    text = temp.read()
-    text = word_tokenize(text.lower())
     with open('acronyms.txt','r') as f:
         acrnms = [l.strip().lower() for l in f]
-    for token in text:
+    for token in tokens:
         if token in acrnms:
             count += 1
         continue
-    temp.close()
     f.close()
     return count
 
-def profanities(fname):
+
+def profanities(tokens):
     count = 0
-    temp = codecs.open(fname, encoding='utf-8')
-    text = temp.read()
-    text = word_tokenize(text.lower())
-    with open('profanities.txt','r') as f:
+    with open('profanities.txt', 'r') as f:
         prfnts = [l.strip() for l in f]
-    for token in text:
+    for token in tokens:
         if token in prfnts:
             count += 1
         continue
-    temp.close()
     f.close()
     return count
 
 for user in users_vector[:6]:
     os.system('grep -i "{0}{1}" /analytic_store/tmpdata/smoking_1_noUser0.txt > temp.txt'.format('smoking_1_', str(user)))
-    temp_file = 'temp.txt'
-    user_array = numpy.array([word_count(temp_file), sent_per_status(temp_file), words_per_sent(temp_file),
-                              punct_count(temp_file), lexical_diversity(temp_file), acronyms(temp_file),
-                              profanities(temp_file)])
+    temp_file = codecs.open('temp.txt', encoding='utf-8')
+    text = temp_file.read()
+    text_sents = sent_tokenize(text)
+    text_words = word_tokenize(text.lower())
+    user_array = numpy.array([word_count(text_words), sent_per_status(text), words_per_sent(text_sents),
+                              punct_count(text_words), lexical_diversity(text_words), acronyms(text_words),
+                              profanities(text_words)])
 
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("--- %s seconds ---" % (time.time() - start_time))
