@@ -4,10 +4,13 @@ import time
 start_time = time.time()
 import codecs
 import os
+import random
 import string
 import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import sent_tokenize, word_tokenize
+from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
 f = open('smoking_1_analytic_data_mapreduce.pkl', 'rb')
@@ -35,7 +38,10 @@ def sent_per_status(file_text):
     sent_count = []
     for line in file_text:
         sent_count.append(len(sent_tokenize(line)))
-    avg = sum(sent_count)/float(len(sent_count))
+    if len(sent_count) == 0:
+        avg = 0
+    else:
+        avg = sum(sent_count)/float(len(sent_count))
     return avg
 
 
@@ -43,7 +49,10 @@ def words_per_sent(sents):
     word_counts = []
     for sent in sents:
         word_counts.append(len(word_tokenize(sent)))
-    avg = sum(word_counts)/float(len(word_counts))
+    if len(word_counts) == 0:
+        avg = 0
+    else:
+        avg = sum(word_counts)/float(len(word_counts))
     return avg
 
 
@@ -57,10 +66,13 @@ def punct_count(tokens):
 
 
 def lexical_diversity(tokens):
-    diversity = len(tokens) / float(len(set(tokens)))
+    if len(tokens) == 0:
+        diversity = 0
+    else:
+        diversity = len(tokens) / float(len(set(tokens)))
     return diversity
 
-
+"""
 def emoticons(file_text):
     count = 0
     with open('emoticons.txt', 'r') as f:
@@ -72,7 +84,7 @@ def emoticons(file_text):
             continue
     f.close()
     return count
-
+"""
 
 def acronyms(tokens):
     count = 0
@@ -97,9 +109,9 @@ def profanities(tokens):
     f.close()
     return count
 
-for user in users_vector[:6]:
-    os.system('grep -i "{0}{1}" /analytic_store/tmpdata/smoking_1_noUser0.txt > temp.txt'.format('smoking_1_', str(user)))
-    temp_file = codecs.open('temp.txt', encoding='utf-8')
+for user in users_vector:
+    os.system('fgrep "smoking_1_{0}" users_posts.txt > temp02.txt'.format(str(user)))
+    temp_file = codecs.open('temp02.txt', encoding='utf-8')
     text = temp_file.read()
     text_sents = sent_tokenize(text)
     text_words = word_tokenize(text.lower())
@@ -108,7 +120,7 @@ for user in users_vector[:6]:
                               profanities(text_words)])
 
     loader_matrix = numpy.vstack((loader_matrix, user_array))
-    print("--- %s seconds ---" % (time.time() - start_time))
+    print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
 
 loader_matrix = csr_matrix(loader_matrix)[1:,:] #Convert loader_matrix to csr matrix and remove first row
 combined_matrix = hstack([posts_matrix, loader_matrix],format="csr") #combine loader_matrix with posts_matrix
@@ -116,3 +128,38 @@ combined_matrix = hstack([posts_matrix, loader_matrix],format="csr") #combine lo
 print "Loader Matrix Shape:", loader_matrix.shape
 print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
 print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
+
+A = posts_matrix
+X = combined_matrix
+y = labels_vector
+del posts_matrix
+del combined_matrix
+
+i = 0
+while i < 10:
+    test_indices = numpy.array(random.sample(range(rows), rows/5))
+    train_indices = numpy.array([num for num in range(rows) if num not in test_indices])
+
+    A_train = A[train_indices,:]
+    A_test = A[test_indices,:]
+
+    X_train = X[train_indices,:]
+    X_test = X[test_indices,:]
+
+    y_train = y[train_indices]
+    y_test = y[test_indices]
+
+    clf01 = SGDClassifier.fit(A_train, y_train)
+    clf02 = SGDClassifier.fit(X_train, y_train)
+
+    model01 = clf01.predict_proba(A_test)
+    accuracy01 = clf01.score(A_test, y_test)
+    model02 = clf02.predict_proba(X_test)
+    accuracy02 = clf02.score(X_test, y_test)
+
+    print "Accuracy 01:", accuracy01
+    print "Accuracy 02:", accuracy02
+    print "AUC 01:", roc_auc_score(y_test, model01[:,1])
+    print "AUC 02:", roc_auc_score(y_test, model02[:,1])
+    print("--- %s seconds ---" % (time.time() - start_time))
+    i += 1
