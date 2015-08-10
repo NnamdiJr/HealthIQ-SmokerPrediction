@@ -4,10 +4,12 @@ import time
 start_time = time.time()
 import codecs
 import os
+import subprocess
 import random
 import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import word_tokenize
+from nltk import pos_tag
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import roc_auc_score
 
@@ -25,38 +27,85 @@ labels_vector = data[4]
 keywords_vector = data[2]
 
 #Empty matrix for load columns
-loader_matrix = numpy.empty([1, 3])
+loader_matrix = numpy.empty([1, 8])
 
-with open('AFINN-111.txt','r') as f:
-        afinns = {line.strip().split('\t')[0]: line.strip().split('\t')[1] for line in f}
+vrb = ['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ']
+adj = ['JJ', 'JJR', 'JJS']
+adv = ['RB', 'RBR', 'RBS']
+prn = ['PRP', 'PRP$']
 
 
-def afinn_user_array(tokens):
+def vrb_count(pos_tags, l):
     count = 0
-    aggregate = 0
-    for token in tokens:
-        if token in afinns.keys():
+    for tag in pos_tags:
+        if tag in vrb:
             count += 1
-            aggregate += int(afinns[token])
         continue
-    if count == 0:
+    if l == 0:
         avg = 0
     else:
-        avg = aggregate/float(count)
-    array = numpy.array([count, aggregate, avg])
-    return array
+        avg = count/float(l)
+    vrb_array = [count, avg]
+    return vrb_array
+
+
+def adj_count(pos_tags, l):
+    count = 0
+    for tag in pos_tags:
+        if tag in adj:
+            count += 1
+        continue
+    if l == 0:
+        avg = 0
+    else:
+        avg = count/float(l)
+    adj_array = [count, avg]
+    return adj_array
+
+
+def adv_count(pos_tags, l):
+    count = 0
+    for tag in pos_tags:
+        if tag in adv:
+            count += 1
+        continue
+    if l == 0:
+        avg = 0
+    else:
+        avg = count/float(l)
+    adv_array = [count, avg]
+    return adv_array
+
+
+def prn_count(pos_tags, l):
+    count = 0
+    for tag in pos_tags:
+        if tag in prn:
+            count += 1
+        continue
+    if l == 0:
+        avg = 0
+    else:
+        avg = count/float(l)
+    prn_array = [count, avg]
+    return prn_array
 
 
 for user in users_vector:
-    os.system('fgrep "smoking_1_{0}" users_posts.txt > temp01.txt'.format(str(user)))
-    temp_file = codecs.open('temp01.txt', encoding='utf-8')
+    os.system('fgrep "smoking_1_{0}" users_posts.txt > temp03.txt'.format(str(user)))
+    if subprocess.check_output("wc -l temp03.txt", shell=True).strip(' temp03.txt\n') == '':
+        lines = 0
+    else:
+        lines = int(subprocess.check_output("wc -l temp03.txt", shell=True).strip(' temp03.txt\n'))
+    temp_file = codecs.open('temp03.txt', encoding='utf-8')
     text = temp_file.read()
-    text_words = word_tokenize(text.lower())
-    user_array = afinn_user_array(text_words)
+    text_words = word_tokenize(text)
+    text_pos = [tags[1] for tags in pos_tag(text_words)]
+    user_array = numpy.array([vrb_count(text_pos, lines), adj_count(text_pos, lines), adv_count(text_pos, lines),
+                               prn_count(text_pos, lines)]).flatten()
 
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
-
 
 loader_matrix = csr_matrix(loader_matrix)[1:, :] #Convert loader_matrix to csr matrix and remove first row
 combined_matrix = hstack([posts_matrix, loader_matrix], format="csr") #combine loader_matrix with posts_matrix

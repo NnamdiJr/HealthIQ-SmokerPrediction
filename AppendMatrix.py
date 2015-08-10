@@ -5,7 +5,7 @@ start_time = time.time()
 from scipy import sparse
 from scipy.sparse import vstack, hstack, csr_matrix
 import numpy
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import cross_validation
 from sklearn.metrics import roc_auc_score
@@ -45,7 +45,7 @@ X = appendMatrix(posts_matrix, regex_matrix)
 y = labels_vector
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.1)
 
-clf = LogisticRegression().fit(X_train, y_train)
+clf = SGDClassifier(loss="modified_huber").fit(X_train, y_train)
 #clf = MultinomialNB().fit(X_train, y_train)
 
 model = clf.predict_proba(X_test)

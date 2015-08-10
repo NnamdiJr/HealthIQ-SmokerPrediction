@@ -109,7 +109,7 @@ def profanities(tokens):
     f.close()
     return count
 
-for user in users_vector:
+for user in users_vector[:10]:
     os.system('fgrep "smoking_1_{0}" users_posts.txt > temp02.txt'.format(str(user)))
     temp_file = codecs.open('temp02.txt', encoding='utf-8')
     text = temp_file.read()
@@ -149,8 +149,8 @@ while i < 10:
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clf01 = SGDClassifier.fit(A_train, y_train)
-    clf02 = SGDClassifier.fit(X_train, y_train)
+    clf01 = SGDClassifier(loss="modified_huber").fit(A_train, y_train)
+    clf02 = SGDClassifier(loss="modified_huber").fit(X_train, y_train)
 
     model01 = clf01.predict_proba(A_test)
     accuracy01 = clf01.score(A_test, y_test)
