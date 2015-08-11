@@ -63,9 +63,22 @@ def h4lvd_array(tokens, lines):
         if token in passive:
             psv_count += 1
         continue
+    if ngtv_count == 0:
+        pstv_ngtv_ratio = 0
+    else:
+        pstv_ngtv_ratio = pstv_count/ngtv_count
+    if weak_count == 0:
+        strng_weak_ratio = 0
+    else:
+        strng_weak_ratio = strng_count/weak_count
+    if psv_count == 0:
+        actv_psv_ratio = 0
+    else:
+        actv_psv_ratio = actv_count/psv_count
+
     return numpy.array([pstv_count/float(lines), ngtv_count/float(lines), strng_count/float(lines),
-                        weak_count/float(lines), actv_count/float(lines), psv_count/float(lines), pstv_count/ngtv_count,
-                        strng_count/weak_count, actv_count/psv_count])
+                        weak_count/float(lines), actv_count/float(lines), psv_count/float(lines), pstv_ngtv_ratio,
+                        strng_weak_ratio, actv_psv_ratio])
 
 for user in users_vector:
     os.system('fgrep "smoking_1_{0}" users_posts.txt > temp04.txt'.format(str(user)))

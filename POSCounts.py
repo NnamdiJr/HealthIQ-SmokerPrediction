@@ -10,7 +10,7 @@ import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import word_tokenize
 from nltk import pos_tag
-from sklearn.linear_model import SGDClassifier
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
@@ -107,6 +107,8 @@ for user in users_vector:
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
 
+numpy.savetxt('pos_matrix.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
+
 loader_matrix = csr_matrix(loader_matrix)[1:, :] #Convert loader_matrix to csr matrix and remove first row
 combined_matrix = hstack([posts_matrix, loader_matrix], format="csr") #combine loader_matrix with posts_matrix
 
@@ -134,8 +136,8 @@ while i < 10:
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clf01 = SGDClassifier(loss="modified_huber").fit(A_train, y_train)
-    clf02 = SGDClassifier(loss="modified_huber").fit(X_train, y_train)
+    clf01 = MultinomialNB().fit(A_train, y_train)
+    clf02 = MultinomialNB().fit(X_train, y_train)
 
     model01 = clf01.predict_proba(A_test)
     accuracy01 = clf01.score(A_test, y_test)

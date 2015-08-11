@@ -9,7 +9,7 @@ import string
 import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import sent_tokenize, word_tokenize
-from sklearn.linear_model import SGDClassifier
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
@@ -109,7 +109,7 @@ def profanities(tokens):
     f.close()
     return count
 
-for user in users_vector[:10]:
+for user in users_vector:
     os.system('fgrep "smoking_1_{0}" users_posts.txt > temp02.txt'.format(str(user)))
     temp_file = codecs.open('temp02.txt', encoding='utf-8')
     text = temp_file.read()
@@ -121,6 +121,8 @@ for user in users_vector[:10]:
 
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
+
+numpy.savetxt('ling_feats_matrix.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
 
 loader_matrix = csr_matrix(loader_matrix)[1:,:] #Convert loader_matrix to csr matrix and remove first row
 combined_matrix = hstack([posts_matrix, loader_matrix],format="csr") #combine loader_matrix with posts_matrix
@@ -149,8 +151,8 @@ while i < 10:
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clf01 = SGDClassifier(loss="modified_huber").fit(A_train, y_train)
-    clf02 = SGDClassifier(loss="modified_huber").fit(X_train, y_train)
+    clf01 = MultinomialNB().fit(A_train, y_train)
+    clf02 = MultinomialNB().fit(X_train, y_train)
 
     model01 = clf01.predict_proba(A_test)
     accuracy01 = clf01.score(A_test, y_test)
