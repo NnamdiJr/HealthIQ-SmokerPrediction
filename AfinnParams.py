@@ -8,7 +8,7 @@ import random
 import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import word_tokenize
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
@@ -25,7 +25,7 @@ labels_vector = data[4]
 keywords_vector = data[2]
 
 #Empty matrix for load columns
-loader_matrix = numpy.empty([1, 3])
+loader_matrix = numpy.empty([1, 14])
 
 with open('AFINN-111.txt','r') as f:
         afinns = {line.strip().split('\t')[0]: line.strip().split('\t')[1] for line in f}
@@ -34,16 +34,19 @@ with open('AFINN-111.txt','r') as f:
 def afinn_user_array(tokens):
     count = 0
     aggregate = 0
+    ints = []
     for token in tokens:
         if token in afinns.keys():
             count += 1
             aggregate += int(afinns[token])
-        continue
+            ints.append(int(afinns[token]))
     if count == 0:
         avg = 0
     else:
         avg = aggregate/float(count)
-    array = numpy.array([count, aggregate, avg])
+    array = numpy.array([count, aggregate, avg, ints.count(-5), ints.count(-4), ints.count(-3), ints.count(-2),
+                         ints.count(-1), ints.count(0), ints.count(1), ints.count(2), ints.count(3), ints.count(4),
+                         ints.count(5)])
     return array
 
 
@@ -57,7 +60,7 @@ for user in users_vector:
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
 
-numpy.savetxt('afinn_params_matrix.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
+numpy.savetxt('afinn_params_matrix02.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
 
 loader_matrix = csr_matrix(loader_matrix)[1:, :] #Convert loader_matrix to csr matrix and remove first row
 combined_matrix = hstack([posts_matrix, loader_matrix], format="csr") #combine loader_matrix with posts_matrix
@@ -67,6 +70,7 @@ print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
 print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
 
 A = posts_matrix
+B = loader_matrix
 X = combined_matrix
 y = labels_vector
 del posts_matrix
@@ -80,23 +84,25 @@ while i < 10:
     A_train = A[train_indices, :]
     A_test = A[test_indices, :]
 
+    B_train = B[train_indices, :]
+    B_test = B[test_indices, :]
+
     X_train = X[train_indices, :]
     X_test = X[test_indices, :]
 
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clf01 = MultinomialNB().fit(A_train, y_train)
-    clf02 = MultinomialNB().fit(X_train, y_train)
+    clfA = SGDClassifier(loss="log").fit(A_train, y_train)
+    clfB = SGDClassifier(loss="log").fit(B_train, y_train)
+    clfX = SGDClassifier(loss="log").fit(X_train, y_train)
 
-    model01 = clf01.predict_proba(A_test)
-    accuracy01 = clf01.score(A_test, y_test)
-    model02 = clf02.predict_proba(X_test)
-    accuracy02 = clf02.score(X_test, y_test)
+    modelA = clfA.predict_proba(A_test)
+    modelB = clfB.predict_proba(B_test)
+    modelX = clfX.predict_proba(X_test)
 
-    print "Accuracy 01:", accuracy01
-    print "Accuracy 02:", accuracy02
-    print "AUC 01:", roc_auc_score(y_test, model01[:,1])
-    print "AUC 02:", roc_auc_score(y_test, model02[:,1])
+    print "AUC A:", roc_auc_score(y_test, modelA[:,1])
+    print "AUC B:", roc_auc_score(y_test, modelB[:,1])
+    print "AUC X:", roc_auc_score(y_test, modelX[:,1])
     print("--- %s seconds ---" % (time.time() - start_time))
     i += 1

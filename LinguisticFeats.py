@@ -30,14 +30,13 @@ loader_matrix = numpy.empty([1, 7])
 
 
 def word_count(tokens):
-    count = len(tokens)
+    count = len([token for token in tokens if token not in string.punctuation])
     return count
 
 
 def sent_per_status(file_text):
-    sent_count = []
-    for line in file_text:
-        sent_count.append(len(sent_tokenize(line)))
+    content = file_text.readlines()
+    sent_count = [len(sent_tokenize(line)) for line in content]
     if len(sent_count) == 0:
         avg = 0
     else:
@@ -48,7 +47,8 @@ def sent_per_status(file_text):
 def words_per_sent(sents):
     word_counts = []
     for sent in sents:
-        word_counts.append(len(word_tokenize(sent)))
+        count = len([token for token in word_tokenize(sent) if token not in string.punctuation])
+        word_counts.append(count)
     if len(word_counts) == 0:
         avg = 0
     else:
@@ -61,30 +61,17 @@ def punct_count(tokens):
     for token in tokens:
         if token in string.punctuation:
             count += 1
-        continue
     return count
 
 
 def lexical_diversity(tokens):
+    tokens = [token for token in tokens if token not in string.punctuation]
     if len(tokens) == 0:
         diversity = 0
     else:
         diversity = len(tokens) / float(len(set(tokens)))
     return diversity
 
-"""
-def emoticons(file_text):
-    count = 0
-    with open('emoticons.txt', 'r') as f:
-        emtcns = [l.strip() for l in f]
-    for line in file_text:
-        for icon in emtcns:
-            if icon in line:
-                count += 1
-            continue
-    f.close()
-    return count
-"""
 
 def acronyms(tokens):
     count = 0
@@ -115,14 +102,14 @@ for user in users_vector:
     text = temp_file.read()
     text_sents = sent_tokenize(text)
     text_words = word_tokenize(text.lower())
-    user_array = numpy.array([word_count(text_words), sent_per_status(text), words_per_sent(text_sents),
+    user_array = numpy.array([word_count(text_words), sent_per_status(temp_file), words_per_sent(text_sents),
                               punct_count(text_words), lexical_diversity(text_words), acronyms(text_words),
                               profanities(text_words)])
 
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
 
-numpy.savetxt('ling_feats_matrix.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
+numpy.savetxt('ling_feats_matrix02.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
 
 loader_matrix = csr_matrix(loader_matrix)[1:,:] #Convert loader_matrix to csr matrix and remove first row
 combined_matrix = hstack([posts_matrix, loader_matrix],format="csr") #combine loader_matrix with posts_matrix
@@ -132,6 +119,7 @@ print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
 print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
 
 A = posts_matrix
+B = loader_matrix
 X = combined_matrix
 y = labels_vector
 del posts_matrix
@@ -142,26 +130,28 @@ while i < 10:
     test_indices = numpy.array(random.sample(range(rows), rows/5))
     train_indices = numpy.array([num for num in range(rows) if num not in test_indices])
 
-    A_train = A[train_indices,:]
-    A_test = A[test_indices,:]
+    A_train = A[train_indices, :]
+    A_test = A[test_indices, :]
 
-    X_train = X[train_indices,:]
-    X_test = X[test_indices,:]
+    B_train = B[train_indices, :]
+    B_test = B[test_indices, :]
+
+    X_train = X[train_indices, :]
+    X_test = X[test_indices, :]
 
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clf01 = MultinomialNB().fit(A_train, y_train)
-    clf02 = MultinomialNB().fit(X_train, y_train)
+    clfA = MultinomialNB().fit(A_train, y_train)
+    clfB = MultinomialNB().fit(B_train, y_train)
+    clfX = MultinomialNB().fit(X_train, y_train)
 
-    model01 = clf01.predict_proba(A_test)
-    accuracy01 = clf01.score(A_test, y_test)
-    model02 = clf02.predict_proba(X_test)
-    accuracy02 = clf02.score(X_test, y_test)
+    modelA = clfA.predict_proba(A_test)
+    modelB = clfB.predict_proba(B_test)
+    modelX = clfX.predict_proba(X_test)
 
-    print "Accuracy 01:", accuracy01
-    print "Accuracy 02:", accuracy02
-    print "AUC 01:", roc_auc_score(y_test, model01[:,1])
-    print "AUC 02:", roc_auc_score(y_test, model02[:,1])
+    print "AUC A:", roc_auc_score(y_test, modelA[:,1])
+    print "AUC B:", roc_auc_score(y_test, modelB[:,1])
+    print "AUC X:", roc_auc_score(y_test, modelX[:,1])
     print("--- %s seconds ---" % (time.time() - start_time))
     i += 1

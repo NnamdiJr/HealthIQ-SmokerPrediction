@@ -40,7 +40,6 @@ def vrb_count(pos_tags, l):
     for tag in pos_tags:
         if tag in vrb:
             count += 1
-        continue
     if l == 0:
         avg = 0
     else:
@@ -54,7 +53,6 @@ def adj_count(pos_tags, l):
     for tag in pos_tags:
         if tag in adj:
             count += 1
-        continue
     if l == 0:
         avg = 0
     else:
@@ -68,7 +66,6 @@ def adv_count(pos_tags, l):
     for tag in pos_tags:
         if tag in adv:
             count += 1
-        continue
     if l == 0:
         avg = 0
     else:
@@ -82,7 +79,6 @@ def prn_count(pos_tags, l):
     for tag in pos_tags:
         if tag in prn:
             count += 1
-        continue
     if l == 0:
         avg = 0
     else:
@@ -117,6 +113,7 @@ print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
 print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
 
 A = posts_matrix
+B = loader_matrix
 X = combined_matrix
 y = labels_vector
 del posts_matrix
@@ -130,23 +127,25 @@ while i < 10:
     A_train = A[train_indices, :]
     A_test = A[test_indices, :]
 
+    B_train = B[train_indices, :]
+    B_test = B[test_indices, :]
+
     X_train = X[train_indices, :]
     X_test = X[test_indices, :]
 
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clf01 = MultinomialNB().fit(A_train, y_train)
-    clf02 = MultinomialNB().fit(X_train, y_train)
+    clfA = MultinomialNB().fit(A_train, y_train)
+    clfB = MultinomialNB().fit(B_train, y_train)
+    clfX = MultinomialNB().fit(X_train, y_train)
 
-    model01 = clf01.predict_proba(A_test)
-    accuracy01 = clf01.score(A_test, y_test)
-    model02 = clf02.predict_proba(X_test)
-    accuracy02 = clf02.score(X_test, y_test)
+    modelA = clfA.predict_proba(A_test)
+    modelB = clfB.predict_proba(B_test)
+    modelX = clfX.predict_proba(X_test)
 
-    print "Accuracy 01:", accuracy01
-    print "Accuracy 02:", accuracy02
-    print "AUC 01:", roc_auc_score(y_test, model01[:,1])
-    print "AUC 02:", roc_auc_score(y_test, model02[:,1])
+    print "AUC A:", roc_auc_score(y_test, modelA[:,1])
+    print "AUC B:", roc_auc_score(y_test, modelB[:,1])
+    print "AUC X:", roc_auc_score(y_test, modelX[:,1])
     print("--- %s seconds ---" % (time.time() - start_time))
     i += 1

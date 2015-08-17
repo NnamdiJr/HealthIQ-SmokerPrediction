@@ -5,10 +5,11 @@ start_time = time.time()
 from scipy import sparse
 from scipy.sparse import vstack, hstack, csr_matrix
 import numpy
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn import svm
 from sklearn import cross_validation
 from sklearn.metrics import roc_auc_score
+
+print("--- %s seconds ---" % (time.time() - start_time))
 
 #Loading pickle file data into numpy array called data
 f = open('C:\Users\Nnamdi\Desktop\HealthIQ\Smoker Analysis\smoking_1_analytic_data_mapreduce.pkl', 'rb')
@@ -40,18 +41,17 @@ def appendMatrix(matrix01, matrix02):
     matrix01 = csr_matrix(hstack([matrix01, hold_matrix]))
     return matrix01
 
+X = posts_matrix[:400,:]
+#X = appendMatrix(posts_matrix, regex_matrix)
+y = labels_vector[:400]
+X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.2)
 
-X = appendMatrix(posts_matrix, regex_matrix)
-y = labels_vector
-X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.1)
-
-clf = SGDClassifier(loss="modified_huber").fit(X_train, y_train)
+clf = svm.SVC(probability=True,kernel='linear').fit(X_train, y_train)
 #clf = MultinomialNB().fit(X_train, y_train)
 
 model = clf.predict_proba(X_test)
 accuracy = clf.score(X_test, y_test)
 
-print accuracy
 print roc_auc_score(y_test, model[:,1])
 
 print("--- %s seconds ---" % (time.time() - start_time))
