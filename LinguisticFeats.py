@@ -10,6 +10,11 @@ import numpy
 from scipy.sparse import hstack, csr_matrix
 from nltk import sent_tokenize, word_tokenize
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectKBest, VarianceThreshold, f_classif
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
@@ -118,33 +123,58 @@ print "Loader Matrix Shape:", loader_matrix.shape
 print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
 print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
 
-A = posts_matrix
-B = loader_matrix
-X = combined_matrix
+
+transformer = TfidfTransformer(use_idf=False)
+varSelector1 = VarianceThreshold(threshold=0.001)
+
+
+varSelectorA = SelectKBest(f_classif, k=min(int(11616*0.7), posts_matrix.shape[1]))
+varSelectorB = SelectKBest(f_classif, k="all")
+varSelectorX = SelectKBest(f_classif, k=min(int(11616*0.7), combined_matrix.shape[1]))
+
+
+A = varSelector1.fit_transform(posts_matrix)
+B = varSelector1.fit_transform(loader_matrix)
+X = varSelector1.fit_transform(combined_matrix)
 y = labels_vector
 del posts_matrix
 del combined_matrix
+
+
+A = transformer.fit_transform(A)
+B = transformer.fit_transform(B)
+X = transformer.fit_transform(X)
+
 
 i = 0
 while i < 10:
     test_indices = numpy.array(random.sample(range(rows), rows/5))
     train_indices = numpy.array([num for num in range(rows) if num not in test_indices])
 
-    A_train = A[train_indices, :]
-    A_test = A[test_indices, :]
-
-    B_train = B[train_indices, :]
-    B_test = B[test_indices, :]
-
-    X_train = X[train_indices, :]
-    X_test = X[test_indices, :]
-
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    clfA = MultinomialNB().fit(A_train, y_train)
-    clfB = MultinomialNB().fit(B_train, y_train)
-    clfX = MultinomialNB().fit(X_train, y_train)
+    A = StandardScaler(with_mean=False).fit_transform(A)
+    A_train = A[train_indices, :]
+    A_train = varSelectorA.fit_transform(A_train, y_train)
+    A_test = A[test_indices, :]
+    A_test = varSelectorA.transform(A_test)
+
+    B = StandardScaler(with_mean=False).fit_transform(B)
+    B_train = B[train_indices, :]
+    B_train = varSelectorB.fit_transform(B_train, y_train)
+    B_test = B[test_indices, :]
+    B_test = varSelectorB.transform(B_test)
+
+    X = StandardScaler(with_mean=False).fit_transform(X)
+    X_train = X[train_indices, :]
+    X_train = varSelectorX.fit_transform(X_train, y_train)
+    X_test = X[test_indices, :]
+    X_test = varSelectorX.transform(X_test)
+
+    clfA = RandomForestClassifier(n_jobs=16, random_state=0).fit(A_train, y_train)
+    clfB = RandomForestClassifier(n_jobs=16, random_state=0).fit(B_train, y_train)
+    clfX = RandomForestClassifier(n_jobs=16, random_state=0).fit(X_train, y_train)
 
     modelA = clfA.predict_proba(A_test)
     modelB = clfB.predict_proba(B_test)
