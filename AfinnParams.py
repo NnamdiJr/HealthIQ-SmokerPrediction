@@ -4,12 +4,9 @@ import time
 start_time = time.time()
 import codecs
 import os
-import random
 import numpy
-from scipy.sparse import hstack, csr_matrix
+from scipy.sparse import csr_matrix
 from nltk import word_tokenize
-from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
 f = open('smoking_1_analytic_data_mapreduce.pkl', 'rb')
@@ -60,49 +57,4 @@ for user in users_vector:
     loader_matrix = numpy.vstack((loader_matrix, user_array))
     print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
 
-numpy.savetxt('afinn_params_matrix02.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
-
-loader_matrix = csr_matrix(loader_matrix)[1:, :] #Convert loader_matrix to csr matrix and remove first row
-combined_matrix = hstack([posts_matrix, loader_matrix], format="csr") #combine loader_matrix with posts_matrix
-
-print "Loader Matrix Shape:", loader_matrix.shape
-print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
-print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
-
-A = posts_matrix
-B = loader_matrix
-X = combined_matrix
-y = labels_vector
-del posts_matrix
-del combined_matrix
-
-i = 0
-while i < 10:
-    test_indices = numpy.array(random.sample(range(rows), rows/5))
-    train_indices = numpy.array([num for num in range(rows) if num not in test_indices])
-
-    A_train = A[train_indices, :]
-    A_test = A[test_indices, :]
-
-    B_train = B[train_indices, :]
-    B_test = B[test_indices, :]
-
-    X_train = X[train_indices, :]
-    X_test = X[test_indices, :]
-
-    y_train = y[train_indices]
-    y_test = y[test_indices]
-
-    clfA = SGDClassifier(loss="log").fit(A_train, y_train)
-    clfB = SGDClassifier(loss="log").fit(B_train, y_train)
-    clfX = SGDClassifier(loss="log").fit(X_train, y_train)
-
-    modelA = clfA.predict_proba(A_test)
-    modelB = clfB.predict_proba(B_test)
-    modelX = clfX.predict_proba(X_test)
-
-    print "AUC A:", roc_auc_score(y_test, modelA[:,1])
-    print "AUC B:", roc_auc_score(y_test, modelB[:,1])
-    print "AUC X:", roc_auc_score(y_test, modelX[:,1])
-    print("--- %s seconds ---" % (time.time() - start_time))
-    i += 1
+numpy.savetxt('afinn_params_matrix02.txt', loader_matrix[1:, :]) #save loader matrix to a text file.

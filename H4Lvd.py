@@ -5,12 +5,9 @@ start_time = time.time()
 import codecs
 import os
 import subprocess
-import random
 import numpy
-from scipy.sparse import hstack, csr_matrix
+from scipy.sparse import csr_matrix
 from nltk import word_tokenize
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import roc_auc_score
 
 #Loading pickle file data into numpy array called data
 f = open('smoking_1_analytic_data_mapreduce.pkl', 'rb')
@@ -28,6 +25,7 @@ keywords_vector = data[2]
 #Empty matrix for load columns
 loader_matrix = numpy.empty([1, 9])
 
+#Create lists of words from H4Lvd dictionary
 with open('h4lvd_pstv.txt', 'r') as f:
         positive = [line.strip() for line in f]
 with open('h4lvd_ngtv.txt', 'r') as f:
@@ -80,6 +78,7 @@ def h4lvd_array(tokens, lines):
                         weak_count/float(lines), actv_count/float(lines), psv_count/float(lines), pstv_ngtv_ratio,
                         strng_weak_ratio, actv_psv_ratio])
 
+#Creates feature matrix
 for user in users_vector:
     os.system('fgrep "smoking_1_{0}" users_posts.txt > temp04.txt'.format(str(user)))
     if subprocess.check_output("wc -l temp04.txt", shell=True).strip(' temp04.txt\n') == '':
@@ -97,49 +96,4 @@ for user in users_vector:
         loader_matrix = numpy.vstack((loader_matrix, user_array))
         print("Running Time: %s seconds ||| Current User:" % (time.time() - start_time)), user
 
-numpy.savetxt('h4lvd_matrix.txt', loader_matrix[1:, :]) #save loader matrixt to a text file.
-
-loader_matrix = csr_matrix(loader_matrix)[1:, :] #Convert loader_matrix to csr matrix and remove first row
-combined_matrix = hstack([posts_matrix, loader_matrix], format="csr") #combine loader_matrix with posts_matrix
-
-print "Loader Matrix Shape:", loader_matrix.shape
-print "Posts Matrix Shape:", csr_matrix.get_shape(posts_matrix)
-print "Combined Matrix Shape:", csr_matrix.get_shape(combined_matrix)
-
-A = posts_matrix
-B = loader_matrix
-X = combined_matrix
-y = labels_vector
-del posts_matrix
-del combined_matrix
-
-i = 0
-while i < 10:
-    test_indices = numpy.array(random.sample(range(rows), rows/5))
-    train_indices = numpy.array([num for num in range(rows) if num not in test_indices])
-
-    A_train = A[train_indices, :]
-    A_test = A[test_indices, :]
-
-    B_train = B[train_indices, :]
-    B_test = B[test_indices, :]
-
-    X_train = X[train_indices, :]
-    X_test = X[test_indices, :]
-
-    y_train = y[train_indices]
-    y_test = y[test_indices]
-
-    clfA = MultinomialNB().fit(A_train, y_train)
-    clfB = MultinomialNB().fit(B_train, y_train)
-    clfX = MultinomialNB().fit(X_train, y_train)
-
-    modelA = clfA.predict_proba(A_test)
-    modelB = clfB.predict_proba(B_test)
-    modelX = clfX.predict_proba(X_test)
-
-    print "AUC A:", roc_auc_score(y_test, modelA[:,1])
-    print "AUC B:", roc_auc_score(y_test, modelB[:,1])
-    print "AUC X:", roc_auc_score(y_test, modelX[:,1])
-    print("--- %s seconds ---" % (time.time() - start_time))
-    i += 1
+numpy.savetxt('h4lvd_matrix.txt', loader_matrix[1:, :]) #save loader matrix to a text file.

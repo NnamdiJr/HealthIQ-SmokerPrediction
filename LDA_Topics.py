@@ -57,7 +57,7 @@ print_topics(lda)
 print("--- %s seconds ---" % (time.time() - start_time))
 
 
-#Creates topic matrix row by row.
+#Creates topic matrix.
 for row_index in range(posts_matrix.shape[0]):
     user_idx = posts_matrix[row_index, :]
     topic_matrix = np.vstack((topic_matrix, user_doc_bow(user_idx)))
